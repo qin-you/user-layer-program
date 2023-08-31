@@ -47,8 +47,7 @@ int main(int argc, char *argv[])
                         char buff[MAX_LINE];
                         while ((n = read(connfd, buff, MAX_LINE)) > 0) {
                                 write(STDOUT_FILENO, buff, n);
-                                write(connfd, "Hi,client!", 11);
-                                sleep(1);
+                                write(connfd, "Hi,client!", 10);
                                 write(connfd, buff, n);
                         }
                         exit(0);

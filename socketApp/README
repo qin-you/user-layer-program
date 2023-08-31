@@ -1,0 +1,16 @@
+# fundamental socket application
+The server will return same data back with a "Hi Client!" prefix.
+
+
+# build & usage
+```sh
+make clean 
+make
+./server
+./client 127.0.0.1
+```
+
+
+support multiple clients.
+
+
