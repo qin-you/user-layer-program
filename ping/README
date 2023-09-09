@@ -1,0 +1,115 @@
+# 使用方法
+```sh
+make clean
+make
+sudo ./ping www.baidu.com   # Ctrl-C to stop and shoe statistics
+sudo ./ping 127.0.0.1
+```
+
+示例：
+```
+~$ sudo ./ping www.baidu.com
+[sudo] password for ubuntu: 
+
+PING www.baidu.com (110.242.68.3) 34(52) bytes of data.
+148 bytes from 110.242.68.3: icmp_seq=1 ttl=128 time=14ms
+148 bytes from 110.242.68.3: icmp_seq=2 ttl=128 time=15ms
+148 bytes from 110.242.68.3: icmp_seq=3 ttl=128 time=14ms
+^C
+------ ping statistics ------
+3 packets transmitted, 3 received, 0% packet loss, time 2165ms
+```
+
+
+# 头部定义
+icmp和icmphdr两个结构体定义也许不同，前者还包含一个指针，即icmp结构体最后的成员u8 icmp_data[1]，不要管它，**把icmp当icmphdr用即可**。
+
+ip和iphdr结构体是一样的，都表示ip头部，ip跨平台性应更好。
+
+私以为，ip与icmp，iphdr与icmphdr的不同在于，前面一对是netinet/目录下定义的，后面一对是linux/目录下定义的。 前者不限于linux后者只限于linux。 定义基本相同，成员变量的内存排布是相同的（因为都是对某协议头部的实现），变量名可不同。
+
+ip头部建议直接用内核的，已经很方便了。 icmp头部也建议用系统的icmp结构体，反正构造以后在后面拼接一个data区即可。 自定义的头部需要考虑兼容问题，从已有定义中抠出来，保证成员类型和顺序满足协议规定即可，虽然本地是自己封解包，但对端还是用的系统已有的结构体、函数来解包的。
+本实验使用系统自带的头部结构体 struct ip ,  struct icmp.
+
+自定义ICMP报文头数据结构举例：
+```c
+struct diy_icmp{
+    UCHAR           type;      // 类型    发包ICMP_ECHO  收包ICMP_ECHOREPLY
+    UCHAR           code;      // 代码    赋0
+    USHORT          checksum;  // 校验和  先赋0再算
+    USHORT          id;        // 标识符  一般取 pid&0xffff
+    USHORT          sequence;  // 序号    以上是头部 8Bytes 系统自带的icmp也是这个内存排布。和协议有关和系统无关。
+
+    /* 可选 */
+    char            data[128]; // 这里若这么干 该结构体就表示 icmp package而不只是头部。 也可以做个单独的数据区拼在后面 让头部只是头部
+};
+```
+
+
+# 封包解包
+数据包结构： 
+```
+各层视角：
+-------------------------------------------------
+|         HEADER          |         DATA        |
+-------------------------------------------------
+
+全局视角：
+-------------------------------------------------
+| ip header | icmp header |         DATA        |
+-------------------------------------------------
+```
+
+```C
+socket(AF_INET, SOCK_RAW, proto->p_proto);
+```
+如上，使用AF_INET创建的 原始套接字，其接收的数据包含有ip头部，传输层头部。
+
+对于ip层而言，icmp header和数据报文共同构成数据区
+
+把data部分与header部分构造好以后拼接就是封包，本实验只需要对传输层封包，sendto是传输层api发包时会自动封ip头部。
+
+解包就是逐层递归的去掉header部分，直到只有真正的数据报文，本实验需从ip头部开始解包，因为是原始套接字。
+一般的tcp，udp套接字使用recvfrom/recv/read不用解包，已经自动解了，只需要关注数据本身。
+
+本实验中，封包/拼接方法是先定义一个大空间，比如char buf[512]，然后把header，data填进去，在buf里面接起来即可。
+
+**做校验和指定的包长度和发包（sendto）时指定的包长度必须相等**，否则校验和不对，对端会直接丢弃包。
+
+
+
+# 实现步骤：
+## 一 基础设施
+原始套接字创建、初始化
+输入数据处理、域名解析
+收发线程控制流
+
+**测试无误后再写**业务部分
+
+## 二 业务代码
+发包线程
+        封包
+        发送
+
+收包线程
+        解包
+        过滤
+        打印
+
+**测试无误后再写**监控管理统计部分
+
+## 三 对业务的监控管理统计
+丢包率 响应时间 、、、各种指标计算与更新
+
+## 可选
+对代码风格、用户交互、运行效率等方面进行优化
+
+
+
+# 细节：
+- 注意网络字节序和主机字节序不一样，转换发送，转换处理，提升可移植性。全用小端序在我机器上也能跑，校验和不要做转换。
+- 校验和时是用的整个包（header and data），计算校验和之前需要先把校验和对应字段设置为0，防止字段自身对校验和计算产生影响。对端若发现校验和错位会认为数据包无效而丢弃。
+- select不能识别原始套接字是否可用，但poll可以。别人有用select也可以的，原因未知。 找了两个小时。。
+- 结构体较多，api也多，自顶向下地实现能保证需求是明确的，一直有线索，便于man api。
+- 域名解析使用的getaddrinfo而不是gethostbyname，移植性更好。 该api需要联网，网络差时较吃时间
+

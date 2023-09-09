@@ -1,0 +1,56 @@
+# Introduction
+使用原始套接字实现的一个简易的网络分析器，也就是抓包
+实验目的 感受原始套接字，熟悉各协议头部格式
+
+
+# Details
+```c
+sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+```
+AF_PACKET是一个地址族（Address Family），它允许应用程序在设备层（链路层，以太网中就是以太网层）接收或发送数据包。当使用AF_PACKET创建套接字时，可以接收到网络接口上的所有数据包，包括链路层的头部。
+
+ETH_P_ALL是一个协议类型，它表示接收所有的协议类型的数据包。当你使用ETH_P_ALL作为协议参数时，你将接收到包括链路层头部在内的完整的数据包。如果想接收特定类型的数据包，例如只接收IP分组，可以使用ETH_P_IP。
+
+注意ARP属于网络层协议，TCP/IP协议是实际使用的协议，把它放在网络层。 OSI模型是理论模型，把它放在的链路层。以实际使用为主。 ARP广播找某ip的mac，需要头部需要源目的ip字段，源目的mac字段。详见下图以太网头部格式，ARP头部是放在以太网层的数据区的。
+
+
+# Usage
+```sh
+make clean
+make
+sudo ./net-analyse
+```
+
+Example:
+```
+source mac 00:0c:29:8e:f3:a3 --> dst mac: 00:50:56:c0:00:08
+src ip:172.16.xxx.xxx ---> dst ip 172.16.xxx.xxx
+tcp protocol
+src port 41313 --> dst port 41039
+
+source mac 00:50:56:c0:00:08 --> dst mac: 00:0c:29:8e:f3:a3
+src ip:172.16.xxx.xxx ---> dst ip 172.16.xxx.xxx
+tcp protocol
+src port 30814 --> dst port 46819
+```
+
+
+# Resource
+
+TCP头部格式
+
+![](https://img-blog.csdnimg.cn/20190818161727869.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dkaXJkbw==,size_16,color_FFFFFF,t_70)
+
+IP头部格式
+
+![](https://img-blog.csdnimg.cn/20190322232952742.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzQzNzA2OTQz,size_16,color_FFFFFF,t_70)
+
+以太网层头部格式：\
+注意以太网层是可以反映该包的高层类型的，即TYPE字段，如0800表示ip数据包，0806表示arp请求。
+
+![](https://img-blog.csdnimg.cn/1f1c7821de134224bb59efab27cac95b.png)
+
+
+# Reference
+[blog](https://blog.csdn.net/AAAA202012/article/details/127457405)\
+[blog](https://www.zhihu.com/question/22268146/answer/2306855615)

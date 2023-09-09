@@ -1,0 +1,35 @@
+# 实验要求
+实现一个echo server，server端接收到client端的数据后打印并原样回复给client
+
+server, client端是相同或不同机器上的两个进程
+
+server支持并发访问
+
+server所在机器的所有网口均可访问该server进程，即机器所有ip均可访问到server。
+
+# 做法
+使用流套接字，tcp协议
+```c
+socket(AF_INET, SOCK_STREAM, 0);	// 0表示协议将根据套接字类型自动适配 流套接字默认适配tcp
+```
+
+server固定监听6000端口，使用的子进程处理新的连接，最大连接数20.
+
+client端接收标准输入并发给server
+
+server端返回的报文带有 "Hi Client!" 前缀
+
+servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 这样就可以在bind时绑定所在机器所有ip
+
+
+# 编译 & 使用
+```sh
+make clean 
+make
+./server
+./client 127.0.0.1
+./client 172.16.xxx.xxx		# other machine access server
+```
+
+
+

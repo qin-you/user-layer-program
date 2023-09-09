@@ -15,5 +15,5 @@ all:${TARGET}
 	${CC} $< -o $@
 
 clean:
-	#-rm ${OBJ}
-	-rm ${TARGET}
+	rm -f ${OBJ}
+	rm -f ${TARGET}
