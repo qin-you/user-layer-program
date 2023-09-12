@@ -5,3 +5,4 @@ echo-server/server
 hw/uart-test
 net-analyse/net-analyse
 ping/ping
+uart-test/uart-test
