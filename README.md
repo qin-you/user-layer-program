@@ -13,7 +13,7 @@
 [README](echo-server/README)\
 完成两台机器上两个进程的简单通信，通过流套接字、tcp协议。server端接收到client端的数据后原样回复给client。 支持并发访问。medium
 
-- hw
+- uart-test
 
 - net-analyse\
 [README](net-analyse/README)\
